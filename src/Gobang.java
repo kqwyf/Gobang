@@ -99,6 +99,7 @@ class Board extends JPanel
 								int result=map.step(getCoord(new Point(e.getY(),e.getX())));
 								if(result!=0)
 								{
+									System.out.println("win");
 									winned=true;
 									drawWinner(map.getWinnerList());
 									return;
@@ -251,7 +252,7 @@ class MapData
 			return 0;
 		if(getPoint(coord)!=0) return 0;
 		history.push(coord);
-		map[coord.r][coord.c]=history.size()%2;
+		map[coord.r][coord.c]=(history.size()%2)==1?1:-1;
 		return check();
 	}
 
@@ -270,16 +271,23 @@ class MapData
 	private int check()
 	{
 		for(int i=0;i<=height-WIN_N;i++)
+		{
+			int result;
 			for(int j=0;j<=width-WIN_N;j++)
 			{
-				int result;
 				result=checkv(i,j);
 				if(result!=0) return result;
 				result=checkh(i,j);
 				if(result!=0) return result;
-				result=checkd(i,j);
+				result=checkd1(i,j);
 				if(result!=0) return result;
 			}
+			for(int j=WIN_N-1;j<width;j++)
+			{
+				result=checkd2(i,j);
+				if(result!=0) return result;
+			}
+		}
 		return 0;
 	}
 
@@ -307,7 +315,7 @@ class MapData
 		return result;
 	}
 
-	private int checkd(int r,int c)
+	private int checkd1(int r,int c)
 	{
 		int result=0;
 		for(int i=0;i<WIN_N;i++)
@@ -316,6 +324,18 @@ class MapData
 		if(result!=0)
 			for(int i=0;i<WIN_N;i++)
 				winnerList.add(new Point(r+i,c+i));
+		return result;
+	}
+
+	private int checkd2(int r,int c)
+	{
+		int result=0;
+		for(int i=0;i<WIN_N;i++)
+			result+=map[r+i][c-i];
+		result/=WIN_N;
+		if(result!=0)
+			for(int i=0;i<WIN_N;i++)
+				winnerList.add(new Point(r+i,c-i));
 		return result;
 	}
 }
