@@ -1,6 +1,7 @@
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import java.awt.Graphics;
+import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.BorderLayout;
 import java.awt.event.MouseEvent;
@@ -25,16 +26,17 @@ public class Gobang
 	public Gobang()
 	{
 		board=new Board(WIDTH,HEIGHT);
-		board.init();
 
 		mainFrame=new JFrame("五子棋");
-		mainFrame.setSize(WIDTH,HEIGHT);
-		mainFrame.setResizable(false);
-		mainFrame.setLocationRelativeTo(null);
 		mainFrame.getContentPane().setLayout(new BorderLayout());
 		mainFrame.getContentPane().add(board,BorderLayout.CENTER);
+		mainFrame.pack();
+		mainFrame.setResizable(false);
+		mainFrame.setLocationRelativeTo(null);
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mainFrame.setVisible(true);
+
+		board.init();
 	}
 }
 
@@ -64,6 +66,8 @@ class Board extends JPanel
 		inturn=true;
 		this.width=width;
 		this.height=height;
+		this.setPreferredSize(new Dimension((width-1)*SIDE_LEN+2*BORDER_WIDTH,(height-1)*SIDE_LEN+2*BORDER_WIDTH));
+
 		map=new MapData(width,height);
 
 		addMouseListener(new MouseAdapter()
@@ -74,9 +78,15 @@ class Board extends JPanel
 						if(inturn)
 						{
 							if(e.getButton()==e.BUTTON1)
-								map.step(getCoord(new Point(e.getY(),e.getX())));
+							{
+								int result=map.step(getCoord(new Point(e.getY(),e.getX())));
+								if(result!=0)
+									drawWinner(map.getWinnerList());
+							}
 							else
+							{
 								map.regret();
+							}
 							refresh(map.getHistory());
 						}
 						else
@@ -94,7 +104,7 @@ class Board extends JPanel
 	{
 		Graphics g=getGraphics();
 		g.clearRect(0,0,getWidth(),getHeight());
-		g.setColor(Color.white);
+		g.setColor(Color.black);
 		for(int i=0;i<Gobang.WIDTH;i++)
 		{
 			Point p1=getPosition(new Point(0,i));
@@ -113,15 +123,16 @@ class Board extends JPanel
 	 * 在给定坐标画指定颜色的棋子
 	 *
 	 * @param coord 坐标
-	 * @param color 以整数指定的颜色(1为黑色，-1为白色)
+	 * @param color 以整数指定的颜色(1为黑色，-1为白色，2为红色)
 	 */
 	public void draw(Point coord,int color)
 	{
 		if(color==0) return;
 		Graphics g=getGraphics();
 		g.setColor(color==1?Color.black:Color.white);
+		if(color==2) g.setColor(Color.red);
 		Point position=getPosition(coord);
-		g.fillOval(position.c,position.r,2*R,2*R);
+		g.fillOval(position.c-R,position.r-R,2*R,2*R);
 	}
 
 	/**
@@ -132,12 +143,18 @@ class Board extends JPanel
 	public void refresh(List<Point> history)
 	{
 		init();
-		int color=1;
+		int color=(history.size()%2)==1?1:-1;
 		for(Point p:history)
 		{
 			draw(p,color);
 			color*=-1;
 		}
+	}
+
+	public void drawWinner(List<Point> winner)
+	{
+		for(Point p:winner)
+			draw(p,2);
 	}
 
 	/**
@@ -165,10 +182,13 @@ class Board extends JPanel
 
 class MapData
 {
+	private static final int WIN_N=5;
+
 	private int height;
 	private int width;
 	private int[][] map;
 	private LinkedList<Point> history;
+	private LinkedList<Point> winnerList;
 
 	public MapData(int width,int height)
 	{
@@ -181,6 +201,7 @@ class MapData
 	{
 		map=new int[height][width];
 		history=new LinkedList<Point>();
+		winnerList=new LinkedList<Point>();
 	}
 
 	public int getPoint(Point coord)
@@ -195,13 +216,14 @@ class MapData
 		return history;
 	}
 
-	public void step(Point coord)
+	public int step(Point coord)
 	{
 		if(coord.r<0||coord.r>=height||coord.c<0||coord.r>=width)
-			return;
-		if(getPoint(coord)!=0) return;
+			return 0;
+		if(getPoint(coord)!=0) return 0;
 		history.push(coord);
 		map[coord.r][coord.c]=history.size()%2;
+		return check();
 	}
 
 	public void regret()
@@ -209,5 +231,62 @@ class MapData
 		if(history.size()==0) return;
 		Point coord=history.pop();
 		map[coord.r][coord.c]=0;
+	}
+
+	public List<Point> getWinnerList()
+	{
+		return winnerList;
+	}
+
+	private int check()
+	{
+		for(int i=0;i<=height-WIN_N;i++)
+			for(int j=0;j<=width-WIN_N;j++)
+			{
+				int result;
+				result=checkv(i,j);
+				if(result!=0) return result;
+				result=checkh(i,j);
+				if(result!=0) return result;
+				result=checkd(i,j);
+				if(result!=0) return result;
+			}
+		return 0;
+	}
+
+	private int checkv(int r,int c)
+	{
+		int result=0;
+		for(int i=0;i<WIN_N;i++)
+			result+=map[r+i][c];
+		result/=WIN_N;
+		if(result!=0)
+			for(int i=0;i<WIN_N;i++)
+				winnerList.add(new Point(r+i,c));
+		return result;
+	}
+
+	private int checkh(int r,int c)
+	{
+		int result=0;
+		for(int i=0;i<WIN_N;i++)
+			result+=map[r][c+i];
+		result/=WIN_N;
+		if(result!=0)
+			for(int i=0;i<WIN_N;i++)
+				winnerList.add(new Point(r,c+i));
+		return result;
+	}
+
+	private int checkd(int r,int c)
+	{
+		int result=0;
+		for(int i=0;i<WIN_N;i++)
+			result+=map[r+i][c+i];
+		result/=WIN_N;
+		if(result!=0)
+			for(int i=0;i<WIN_N;i++)
+				winnerList.add(new Point(r+i,c+i));
+		return result;
 	}
 }
