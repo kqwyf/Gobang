@@ -1,11 +1,13 @@
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Dimension;
 import java.awt.Color;
 import java.awt.BorderLayout;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseAdapter;
+import java.awt.image.BufferedImage;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -58,30 +60,49 @@ class Board extends JPanel
 	private int width;
 	private int height;
 	private MapData map;
+	private BufferedImage canva;
+	private Graphics2D g;
+	private static final Color bgColor=new Color(187,102,0);
 
+	private boolean winned;
 	private boolean inturn;
 
 	public Board(int width,int height)
 	{
 		inturn=true;
+		winned=false;
+
 		this.width=width;
 		this.height=height;
 		this.setPreferredSize(new Dimension((width-1)*SIDE_LEN+2*BORDER_WIDTH,(height-1)*SIDE_LEN+2*BORDER_WIDTH));
 
 		map=new MapData(width,height);
+		canva=new BufferedImage((width-1)*SIDE_LEN+2*BORDER_WIDTH,(height-1)*SIDE_LEN+2*BORDER_WIDTH,BufferedImage.TYPE_INT_ARGB);
+		g=canva.createGraphics();
+		init();
 
 		addMouseListener(new MouseAdapter()
 				{
 					@Override
 					public void mouseClicked(MouseEvent e)
 					{
+						if(winned)
+						{
+							inturn=true;
+							winned=false;
+							map.init();
+						}
 						if(inturn)
 						{
 							if(e.getButton()==e.BUTTON1)
 							{
 								int result=map.step(getCoord(new Point(e.getY(),e.getX())));
 								if(result!=0)
+								{
+									winned=true;
 									drawWinner(map.getWinnerList());
+									return;
+								}
 							}
 							else
 							{
@@ -97,13 +118,20 @@ class Board extends JPanel
 				});
 	}
 
+	@Override
+	public void paint(Graphics g)
+	{
+		super.paint(g);
+		g.drawImage(canva,0,0,this);
+	}
+
 	/**
 	 * 画空白棋盘
 	 */
 	public void init()
 	{
-		Graphics g=getGraphics();
-		g.clearRect(0,0,getWidth(),getHeight());
+		g.setColor(bgColor);
+		g.fillRect(0,0,getWidth(),getHeight());
 		g.setColor(Color.black);
 		for(int i=0;i<Gobang.WIDTH;i++)
 		{
@@ -128,11 +156,12 @@ class Board extends JPanel
 	public void draw(Point coord,int color)
 	{
 		if(color==0) return;
-		Graphics g=getGraphics();
-		g.setColor(color==1?Color.black:Color.white);
-		if(color==2) g.setColor(Color.red);
+		else if(color==1) g.setColor(Color.black);
+		else if(color==-1) g.setColor(Color.white);
+		else if(color==2) g.setColor(Color.red);
 		Point position=getPosition(coord);
 		g.fillOval(position.c-R,position.r-R,2*R,2*R);
+		updateUI();
 	}
 
 	/**
@@ -194,10 +223,10 @@ class MapData
 	{
 		this.height=height;
 		this.width=width;
-		init(width,height);
+		init();
 	}
 
-	public void init(int width,int height)
+	public void init()
 	{
 		map=new int[height][width];
 		history=new LinkedList<Point>();
