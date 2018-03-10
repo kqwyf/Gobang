@@ -181,6 +181,11 @@ class Board extends JPanel
 		}
 	}
 
+	/**
+	 * 将给定的五子连珠变色。
+	 *
+	 * @param winner 相连五子的坐标列表
+	 */
 	public void drawWinner(List<Point> winner)
 	{
 		for(Point p:winner)
@@ -201,7 +206,7 @@ class Board extends JPanel
 	/**
 	 * 根据画图坐标得到棋子坐标
 	 *
-	 * @paran positoin 画图坐标
+	 * @param position 画图坐标
 	 * @return 棋子坐标
 	 */
 	private static Point getCoord(Point position)
@@ -227,6 +232,9 @@ class MapData
 		init();
 	}
 
+	/**
+	 * 初始化地图数据
+	 */
 	public void init()
 	{
 		map=new int[height][width];
@@ -234,6 +242,12 @@ class MapData
 		winnerList=new LinkedList<Point>();
 	}
 
+	/**
+	 * 获得给定坐标处的棋子颜色。若无棋子返回0。
+	 *
+	 * @param coord 坐标
+	 * @return 棋子颜色，黑色为1，白色为-1，无棋子为0
+	 */
 	public int getPoint(Point coord)
 	{
 		if(coord.r<0||coord.r>=height||coord.c<0||coord.r>=width)
@@ -241,11 +255,22 @@ class MapData
 		return map[coord.r][coord.c];
 	}
 
+	/**
+	 * 获取历史棋步列表
+	 *
+	 * @return 历史棋步列表
+	 */
 	public List<Point> getHistory()
 	{
 		return history;
 	}
 
+	/**
+	 * 在给定坐标处走一步棋
+	 *
+	 * @param coord 下棋坐标
+	 * @return 获胜方。黑棋获胜为1，白棋为-1，无获胜方为0。
+	 */
 	public int step(Point coord)
 	{
 		if(coord.r<0||coord.r>=height||coord.c<0||coord.r>=width)
@@ -256,6 +281,9 @@ class MapData
 		return check();
 	}
 
+	/**
+	 * 进行一步悔棋
+	 */
 	public void regret()
 	{
 		if(history.size()==0) return;
@@ -263,11 +291,21 @@ class MapData
 		map[coord.r][coord.c]=0;
 	}
 
+	/**
+	 * 获取五子连珠列表
+	 *
+	 * @return 五子连珠列表
+	 */
 	public List<Point> getWinnerList()
 	{
 		return winnerList;
 	}
 
+	/**
+	 * 判定胜方
+	 *
+	 * @return 获胜方。黑棋获胜为1，白棋为-1，无获胜方为0
+	 */
 	private int check()
 	{
 		for(int i=0;i<=height-WIN_N;i++)
